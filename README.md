@@ -21,7 +21,7 @@ options:
   -s, --save            save the exam papers to current working directory instead of printing links to stdout
 ```
 
-## Session cookie
+## Session cookies
 
 The `cookie` argument is your session cookie for the exam papers site and can passed in one of two ways:
 
@@ -33,6 +33,9 @@ The `cookie` argument is your session cookie for the exam papers site and can pa
         "COOKIE_NAME": "COOKIE_VALUE"
     }
     ```
+
+
+### Getting your session cookie
 
 The session cookie is used by the site to authenticate you. To get your session cookie, follow these steps:
 
