@@ -1,5 +1,7 @@
 # paperboy
 
+A command line tool to get Maynooth University exam papers
+
 ```
 usage: paperboy.py [-h] [-l MINYEAR] [-u MAXYEAR] [-r] [-s] module cookie
 
@@ -19,7 +21,20 @@ options:
   -s, --save            save the exam papers to current working directory instead of printing links to stdout
 ```
 
-The `cookie` argument is a path to a JSON file containing the name and value of your session cookie for the exam papers site. The site uses this cookie to authenticate you. Follow the steps below to get this cookie:
+## Session cookie
+
+The `cookie` argument is your session cookie for the exam papers site and can passed in one of two ways:
+
+* directly, in the format `COOKIE_NAME=COOKIE_VALUE`
+
+* as a path to a JSON file in the following format:
+    ```json
+    {
+        "COOKIE_NAME": "COOKIE_VALUE"
+    }
+    ```
+
+The session cookie is used by the site to authenticate you. To get your session cookie, follow these steps:
 
 1. In Chrome, log in to the 
    [exam papers website](https://www.maynoothuniversity.ie/library/exam-papers)
@@ -31,13 +46,6 @@ The `cookie` argument is a path to a JSON file containing the name and value of 
 
 This cookie will expire after some time and you will need to follow these steps again.
 
-**Don't share this cookie with anyone or accidentally push it to a repo**
+**Do not share this cookie with anyone or accidentally push it to a repo!**
 
 ![Chrome Developer Tools screenshot](images/devtools.png)
-
-#### Example cookie file
-```json
-{
-    "COOKIE_NAME": "COOKIE_VALUE"
-}
-```
