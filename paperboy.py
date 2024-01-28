@@ -85,7 +85,7 @@ def main():
     
     papers = _extract_papers_details(soup)
 
-    if args.minyear:
+    if args.minyear or args.maxyear:
         def year_filter(pair):
             year = pair[0]
             if args.minyear and year < args.minyear:
