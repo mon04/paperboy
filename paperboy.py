@@ -121,9 +121,9 @@ def main():
         if args.save:
             filename = _generate_filename(paper)
             _download_pdf(paper.url, filename, cookie=cookie)
-            print(f"Saved: {paper}")
+            print(f"Saved: {filename}")
         else:
-            print(paper)
+            print(paper.url)
 
 
 if __name__ == "__main__":
