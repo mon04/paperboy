@@ -3,6 +3,20 @@ import json
 import os.path
 from bs4 import BeautifulSoup as bs
 from argparse import ArgumentParser, ArgumentError
+from enum import Enum
+
+
+ExamPeriod = Enum('ExamPeriod', ['January', 'Summer', 'Autumn', 'Unknown'])
+
+class ExamPaper():
+    def __init__(self, module : str, year : int, exam_period : ExamPeriod, url : str):
+        self.module = module
+        self.year = year
+        self.exam_period = exam_period
+        self.url = url
+    
+    def __str__(self):
+        return f"{{ 'module': '{self.module}', 'year': '{self.year}', 'exam_period': '{self.exam_period}' }}"
 
 
 def _get_page_soup(module: str, cookie: dict) -> bs:
@@ -16,29 +30,38 @@ def _get_page_soup(module: str, cookie: dict) -> bs:
         raise Exception('HTTP request failed: {response}', response)
 
 
-def _extract_papers_details(soup: bs) -> dict:
-    d = {}
-    links = soup.find_all("span", {'class': "file"})
-    links = [link.a for link in links]
+def _extract_papers(soup: bs) -> dict:
+    links = [div.a for div in soup.find_all("span", {'class': "file"})]
+    extracted = []
     for link in links:
-        filename = link.text.strip()
-        year, module, period = filename.rstrip('.pdf').split('-')
-        year = int(year)
         url = link['href']
-        if year not in d.keys():
-            d[year] = {}
-        d[year][period] = {'filename': filename, 'url': url}
-    return d
-    
+        filename = link.text.strip()
+        year, module, exam_period = filename.rstrip('.pdf').split('-')
+        year = int(year)
+        _, exam_period = _validate_exam_period(exam_period)
+        extracted.append(ExamPaper(module, year, exam_period, url))
+    return extracted
+
+
+def _validate_exam_period(exam_period : str) -> (bool, ExamPeriod):
+    exam_period = exam_period.lower()
+    if exam_period == 'january':
+        return (True, 'January')
+    if exam_period == 'summer':
+        return (True, 'Summer')
+    if exam_period == 'autumn' or exam_period == 'repeat':
+        return (True, 'Autumn')
+    return (False, 'Unknown')
+
+
+def _generate_filename(paper: ExamPaper):
+    return f"{paper.module}-{paper.year}-{paper.exam_period}.pdf"
+
 
 def _download_pdf(url, filename, cookie):
     response = requests.get(url, cookies=cookie)
     with open(filename, mode='wb') as file:
         file.write(response.content)
-
-
-def _prettyprint_dict(d: dict):
-    print(json.dumps(d, indent=2))
 
 
 def main():
@@ -49,8 +72,8 @@ def main():
                         help="the code of the module you want papers for "
                         "e.g. 'CS211'")
     parser.add_argument('cookie', type=str,
-                        help="a JSON file with the key and value of your "
-                        "session cookie OR the key and value as separated by '='")
+                        help="your session cookie in the format 'NAME=VALUE' "
+                        "OR path to a JSON file of your session cookie")
     parser.add_argument('-l', '--minyear', type=int,
                         help="the inclusive lower bound of the range of years you "
                         "want papers for")
@@ -83,35 +106,24 @@ def main():
         print('error: failed to scrape webpage')
         exit(1)
     
-    papers = _extract_papers_details(soup)
+    papers = _extract_papers(soup)
 
-    if args.minyear or args.maxyear:
-        def year_filter(pair):
-            year = pair[0]
-            if args.minyear and year < args.minyear:
-                return False
-            if args.maxyear and year >= args.maxyear:
-                return False
-            return True
-        papers = dict(filter(year_filter, papers.items()))
+    if args.minyear :
+        papers = filter(lambda p: p.year >= args.minyear, papers)
+    
+    if args.maxyear:
+        papers = filter(lambda p: p.year < args.maxyear, papers)
     
     if args.noresits:
-        def period_filter(pair):
-            period = pair[0]
-            return period != 'Autumn' and period != 'Repeat'
-        for pair in papers.items():
-            year, value = pair
-            papers[year] = dict(filter(period_filter, papers[year].items()))
+        papers = filter(lambda p: p.exam_period != 'Autumn')
     
-    for year in papers.keys():
-        for period in papers[year].keys():
-            url = papers[year][period]['url']
-            filename = papers[year][period]['filename']
-            if args.save:
-                _download_pdf(url, filename, cookie=cookie)
-                print(f"saved {filename}")
-            else:
-                print(url)
+    for paper in papers:
+        if args.save:
+            filename = _generate_filename(paper)
+            _download_pdf(paper.url, filename, cookie=cookie)
+            print(f"Saved: {paper}")
+        else:
+            print(paper)
 
 
 if __name__ == "__main__":
